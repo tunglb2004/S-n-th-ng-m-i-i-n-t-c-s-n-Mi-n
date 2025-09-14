@@ -8,6 +8,7 @@ import com.example.auth.repository.ChatSessionRepository;
 import com.example.auth.repository.MessageRepository;
 import org.springframework.stereotype.Service;
 import java.util.*;
+import com.example.auth.dto.response.MessageHistoryResponse;
 
 @Service
 public class ChatService {
@@ -110,6 +111,16 @@ public class ChatService {
             map.put("username", other.getUsername());
             map.put("hasUnread", hasUnread);
             result.add(map);
+        }
+        return result;
+    }
+
+    public List<MessageHistoryResponse> getChatHistory(Long userId, Long otherUserId) {
+        List<Message> messages = messageRepo.findByUsers(userId, otherUserId);
+        messages.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt())); // Newest first
+        List<MessageHistoryResponse> result = new ArrayList<>();
+        for (Message m : messages) {
+            result.add(new MessageHistoryResponse(m.getSender().getId(), m.getContent(), m.getCreatedAt()));
         }
         return result;
     }

@@ -1,29 +1,21 @@
 package com.example.auth.controller;
 
 import com.example.auth.dto.request.CreateSessionRequest;
-import com.example.auth.service.ChatService;
+import com.example.auth.dto.request.ChatHistoryRequest;
+import com.example.auth.dto.response.ChatHistoryResponse;
+import com.example.auth.dto.response.MessageHistoryResponse;
+import com.example.auth.dto.response.MessageResponse;
 import com.example.auth.dto.response.ApiResponse;
+import com.example.auth.service.ChatService;
+import com.example.auth.repository.UserRepository;
 import com.example.auth.entity.Message;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
-import java.util.Map;
-import com.example.auth.repository.UserRepository;
-import com.example.auth.dto.response.MessageResponse;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
-import java.util.List;
-import java.util.Map;
-import com.example.auth.entity.User;
-import java.util.Optional;
 
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/chat")
@@ -85,5 +77,19 @@ public class ChatController {
         return userRepository.findByUsername(userDetails.getUsername())
                 .map(u -> u.getId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    @Operation(summary = "Lấy lịch sử chat với người dùng khác (dùng request body)")
+    @PostMapping("/history")
+    public ApiResponse<ChatHistoryResponse> getChatHistory(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody ChatHistoryRequest request) {
+
+        Long userId = getUserIdFromUserDetails(userDetails);
+        Long otherUserId = request.getUserId();
+        var otherUser = userRepository.findById(otherUserId).orElseThrow();
+        List<MessageHistoryResponse> history = chatService.getChatHistory(userId, otherUserId);
+        ChatHistoryResponse response = new ChatHistoryResponse(otherUser.getId(), otherUser.getUsername(), history);
+        return new ApiResponse<>(200, "OK", response);
     }
 }

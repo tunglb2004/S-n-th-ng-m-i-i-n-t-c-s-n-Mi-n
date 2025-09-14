@@ -1,10 +1,8 @@
 package com.example.auth.controller;
 
-import com.example.auth.dto.request.ProductIdRequest;
-import com.example.auth.dto.request.ProductSubmitRequest;
-import com.example.auth.dto.request.ProductApproveRequest;
-import com.example.auth.dto.request.ProductUpdateRequest;
+import com.example.auth.dto.request.*;
 import com.example.auth.dto.response.ApiResponse;
+import com.example.auth.dto.response.ProductDetailResponse;
 import com.example.auth.entity.*;
 import com.example.auth.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +15,8 @@ import java.util.List;
 import java.util.Comparator;
 import java.util.stream.Collectors;
 import com.example.auth.dto.response.ProductRequestSimpleResponse;
+import com.example.auth.dto.request.ProductIdRequest;
+import com.example.auth.entity.Shop;
 
 @RestController
 @RequestMapping("/api/products")
@@ -217,5 +217,29 @@ public class ProductController {
 
         productRepository.delete(product);
         return new ApiResponse<>(200, "Product deleted!", null);
+    }
+
+    @Operation(summary = "Xem chi tiết sản phẩm")
+    @PostMapping("/detail")
+    public ApiResponse<ProductDetailResponse> getProductDetail(@RequestBody ProductDetailRequest req) {
+        Product product = productRepository.findById(req.getProductId())
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+        Shop shop = product.getShop();
+        Province province = product.getProvince();
+        Double price = product.getPrice() != null ? product.getPrice() : 0.0;
+        Integer stock = product.getStockQuantity() != null ? product.getStockQuantity() : 0;
+        Double finalPrice = price * (1 - stock / 100.0);
+        ProductDetailResponse response = new ProductDetailResponse(
+                product.getName(),
+                product.getDescription(),
+                price,
+                stock,
+                finalPrice,
+                shop != null ? shop.getId() : null,
+                shop != null ? shop.getShopName() : null, // <-- FIXED HERE
+                province != null ? province.getId() : null,
+                province != null ? province.getName() : null
+        );
+        return new ApiResponse<>(200, "OK", response);
     }
 }
